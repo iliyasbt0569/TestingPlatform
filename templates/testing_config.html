@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Конфигурация теста</title>
+</head>
+
+<body>
+    <div>
+        <h1>Конфигурация теста</h1>
+        <form method="GET" action="{{ '/' + 'testing/' + testing_name }}">
+            <label for="ez_count">Легкие вопросы</label>
+            <input type="number" id="ez_count" name="ez_count" min="0" max="1000" required/>
+            <label for="medium_count">Средние вопросы</label>
+            <input type="number" id="medium_count" name="medium_count" min="0" max="1000" required/>
+            <label for="hard_count">Сложные вопросы</label>
+            <input type="number" id="hard_count" name="hard_count" min="0" max="1000" required/>
+            <button type="submit">Пройтий тест</button>
+        </form>
+    </div>
+</body>
+
+</html>

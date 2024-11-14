@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тестирование</title>
+</head>
+
+<body>
+    <h1>Тест : {{testing.name}}</h1>
+    <form method="POST" action="/submit_test">
+        <input type="hidden" name="test_name" value="{{testing.name}}">
+        {% for test in testing.tests %}
+        <div class="question">
+            <h3>{{ test.question | safe}}</h3>
+            <h3>{{ test.difficulty }}</h3>
+            <ul>
+                {% for variant in test.variants %}
+                <li>
+                    <input type="radio" id="{{ variant }}" name="{{ test.id }}" value="{{ variant }}">
+                    <label for="{{ variant }}">{{ variant | safe }}</label>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endfor %}
+        <button type="submit" onclick="unmarkDirty()">Отправить ответы</button>
+    </form>
+    <a href="{{ url_for('index') }}" class="back-btn">Главная страница</a>
+
+    <script>
+    let isDirty = false;
+
+    function markDirty() {
+        isDirty = true;
+    }
+
+    function unmarkDirty() {
+        isDirty = false;
+    }
+
+    window.addEventListener('DOMContentLoaded', (event) => {
+        const inputs = document.querySelectorAll('input, textarea, select'); 
+        inputs.forEach(input => input.addEventListener('change', markDirty));
+    });
+
+    window.addEventListener('beforeunload', (event) => {
+        if (isDirty) {  
+            event.preventDefault();
+            event.returnValue = ''; 
+        }
+    });
+
+    function saveData() {
+        isDirty = false;
+    }
+</script>
+
+</body>
+
+</html>

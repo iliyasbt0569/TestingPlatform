@@ -1,0 +1,5 @@
+
+<question1>What is number: <img src="/static/my/media/image1.png" width="15"/>
+<variantright><img src="/static/my/media/image1.png" width="15"/>
+<variant>7
+<variant><img src="/static/my/media/image2.png" width="15"/>
