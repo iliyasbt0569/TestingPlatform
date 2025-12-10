@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+
+    <title>Testing platform</title>
+</head>
+<body>
+    <div class="container">
+        <h1>📚 Testing platform</h1>
+
+        <!-- Test selection screen -->
+        <div id="setupScreen" class="screen active">
+            <div class="card">
+                <div id="loadingTests" class="loading">Loading testings...</div>
+                
+                <div id="setupForm" style="display: none;">
+                    <div class="form-group">
+                        <label for="testSelect">Select testing:</label>
+                        <select id="testSelect">
+                            <option value="">-- Select testing --</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Testing interval:</label>
+                        <div class="range-inputs">
+                            <div>
+                                <input type="number" id="startQuestion" placeholder="From" min="1" value="1">
+                            </div>
+                            <div>
+                                <input type="number" id="endQuestion" placeholder="To" min="1">
+                            </div>
+                        </div>
+                        <div class="error" id="rangeError">Check the testing interval.</div>
+                    </div>
+
+                    <button class="btn btn-primary" onclick="startTest()">Start the testing</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Question screen -->
+        <div id="questionScreen" class="screen">
+            <div class="card question-card">
+                <div class="question-header">
+                    <span class="question-number" id="questionNumber">Question 1/10</span>
+                    <span class="difficulty" id="difficulty">Difficulty: 1</span>
+                </div>
+
+                <div class="question-text" id="questionText"></div>
+
+                <div class="variants" id="variants"></div>
+
+                <button class="btn btn-primary" onclick="nextQuestion()" id="nextBtn" disabled>Next →</button>
+            </div>
+        </div>
+
+        <!-- Results screen -->
+        <div id="resultsScreen" class="screen">
+            <div class="card results">
+                <h2>🎉 Testing completed!</h2>
+                <div class="score" id="score">0/0</div>
+                <div class="score-details" id="scoreDetails"></div>
+                
+                <div class="review-section">
+                    <div class="review-title">📋 Detailed overview of answers</div>
+                    <div class="review-questions" id="reviewQuestions"></div>
+                </div>
+
+                <button class="btn btn-primary" onclick="resetTest()">Retry</button>
+            </div>
+        </div>
+    </div>
+    <script type="module" src="./testings/ProgrammingInPython.js"></script>
+    <script>
+        let availableTests = {};
+        let currentTest = null;
+        let questions = [];
+        let currentQuestionIndex = 0;
+        let userAnswers = [];
+        let answered = false;
+
+        const testFiles = [
+            "EconomicsLawAndFinancialLiteracy",
+            "FrontEnd",
+            "OccupationalSafetyAndHealth",
+            "ProgrammingInPython",
+            "SoftwareDevelopmentMethodologies",
+        ];
+
+        async function loadTests() {
+            const loadingEl = document.getElementById('loadingTests');
+            const formEl = document.getElementById('setupForm');
+            const selectEl = document.getElementById('testSelect');
+
+            try {
+                for (const testFile of testFiles) {
+                    try {
+                        const module = await import(`./testings/${testFile}.js`);
+                        
+                        if (module.testingStr && module.testingName) {
+                            availableTests[testFile] = {
+                                name: module.testingName,
+                                content: module.testingStr
+                            };
+
+                            const option = document.createElement('option');
+                            option.value = testFile;
+                            option.textContent = module.testingName;
+                            selectEl.appendChild(option);
+                        }
+                    } catch (err) {
+                        console.log(`Couldn't load the testing ${testFile}:`, err);
+                    }
+                }
+
+                if (Object.keys(availableTests).length === 0) {
+                    loadingEl.textContent = 'Testing not found! Make sure the file is in the folder testings/';
+                    loadingEl.style.color = '#f44336';
+                } else {
+                    loadingEl.style.display = 'none';
+                    formEl.style.display = 'block';
+                }
+            } catch (err) {
+                console.error('Error loading tests:', err);
+                loadingEl.textContent = 'Error loading tests';
+                loadingEl.style.color = '#f44336';
+            }
+        }
+
+        function parseTest(testStr) {
+            const parsed = [];
+            const lines = testStr.trim().split('\n').filter(l => l.trim());
+            let currentQuestion = null;
+
+            for (let line of lines) {
+                const questionMatch = line.match(/<question(\d)>\s*(.+)/);
+                if (questionMatch) {
+                    if (currentQuestion) {
+                        parsed.push(currentQuestion);
+                    }
+                    currentQuestion = {
+                        difficulty: parseInt(questionMatch[1]),
+                        text: questionMatch[2].trim(),
+                        variants: [],
+                        correctIndex: -1
+                    };
+                    continue;
+                }
+
+                const rightMatch = line.match(/<variantright>\s*(.+)/);
+                if (rightMatch && currentQuestion) {
+                    currentQuestion.correctIndex = currentQuestion.variants.length;
+                    currentQuestion.variants.push(rightMatch[1].trim());
+                    continue;
+                }
+
+                const variantMatch = line.match(/<variant>\s*(.+)/);
+                if (variantMatch && currentQuestion) {
+                    currentQuestion.variants.push(variantMatch[1].trim());
+                }
+            }
+
+            if (currentQuestion) {
+                parsed.push(currentQuestion);
+            }
+
+            return parsed;
+        }
+
+        function startTest() {
+            const testKey = document.getElementById('testSelect').value;
+            const start = parseInt(document.getElementById('startQuestion').value);
+            const end = parseInt(document.getElementById('endQuestion').value);
+            const errorEl = document.getElementById('rangeError');
+
+            if (!testKey) {
+                alert('Select testing!');
+                return;
+            }
+
+            const allQuestions = parseTest(availableTests[testKey].content);
+
+            if (isNaN(start) || isNaN(end) || start < 1 || end < 1 || start > end || end > allQuestions.length) {
+                errorEl.textContent = `Choose an interval from 1 to ${allQuestions.length}`;
+                errorEl.classList.add('show');
+                return;
+            }
+
+            errorEl.classList.remove('show');
+            
+            questions = allQuestions.slice(start - 1, end);
+            currentQuestionIndex = 0;
+            userAnswers = new Array(questions.length).fill(-1);
+            answered = false;
+
+            document.getElementById('setupScreen').classList.remove('active');
+            document.getElementById('questionScreen').classList.add('active');
+
+            showQuestion();
+        }
+
+        function showQuestion() {
+            const question = questions[currentQuestionIndex];
+            answered = false;
+            
+            document.getElementById('questionNumber').textContent = 
+                `Question ${currentQuestionIndex + 1}/${questions.length}`;
+            
+            const difficultyEl = document.getElementById('difficulty');
+            difficultyEl.textContent = `Difficulty: ${question.difficulty}`;
+            difficultyEl.className = `difficulty difficulty-${question.difficulty}`;
+            
+            document.getElementById('questionText').textContent = question.text;
+
+            const variantsEl = document.getElementById('variants');
+            variantsEl.innerHTML = '';
+
+            question.variants.forEach((variant, index) => {
+                const div = document.createElement('div');
+                div.className = 'variant';
+                div.textContent = variant;
+                div.onclick = () => selectAnswer(index);
+                variantsEl.appendChild(div);
+            });
+
+            document.getElementById('nextBtn').disabled = true;
+            document.getElementById('nextBtn').textContent = 
+                currentQuestionIndex === questions.length - 1 ? 'Show results' : 'Next →';
+        }
+
+        function selectAnswer(index) {
+            if (answered) return;
+
+            const question = questions[currentQuestionIndex];
+            userAnswers[currentQuestionIndex] = index;
+            answered = true;
+
+            const variants = document.querySelectorAll('.variant');
+            variants.forEach(v => v.classList.add('disabled'));
+
+            if (index === question.correctIndex) {
+                variants[index].classList.add('correct');
+            } else {
+                variants[index].classList.add('incorrect');
+                variants[question.correctIndex].classList.add('correct-answer');
+            }
+
+            document.getElementById('nextBtn').disabled = false;
+        }
+
+        function nextQuestion() {
+            if (currentQuestionIndex < questions.length - 1) {
+                currentQuestionIndex++;
+                showQuestion();
+            } else {
+                showResults();
+            }
+        }
+
+        function showResults() {
+            let correct = 0;
+            questions.forEach((q, i) => {
+                if (userAnswers[i] === q.correctIndex) {
+                    correct++;
+                }
+            });
+
+            const percentage = Math.round((correct / questions.length) * 100);
+
+            document.getElementById('score').textContent = `${correct}/${questions.length}`;
+            document.getElementById('scoreDetails').textContent = 
+                `Correct answers: ${correct}/${questions.length} (${percentage}%)`;
+
+            const reviewEl = document.getElementById('reviewQuestions');
+            reviewEl.innerHTML = '';
+
+            questions.forEach((q, i) => {
+                const isCorrect = userAnswers[i] === q.correctIndex;
+                const item = document.createElement('div');
+                item.className = `review-item ${isCorrect ? 'correct-review' : 'incorrect-review'}`;
+
+                const questionText = document.createElement('div');
+                questionText.className = 'review-question-text';
+                questionText.textContent = `${i + 1}. ${q.text}`;
+                item.appendChild(questionText);
+
+                const userAnswer = document.createElement('div');
+                userAnswer.className = `review-answer ${isCorrect ? 'user-correct' : 'user-incorrect'}`;
+                userAnswer.textContent = `Your answer: ${q.variants[userAnswers[i]]}`;
+                item.appendChild(userAnswer);
+
+                if (!isCorrect) {
+                    const correctAnswer = document.createElement('div');
+                    correctAnswer.className = 'review-answer correct-answer-show';
+                    correctAnswer.textContent = `Correct answer: ${q.variants[q.correctIndex]}`;
+                    item.appendChild(correctAnswer);
+                }
+
+                reviewEl.appendChild(item);
+            });
+
+            document.getElementById('questionScreen').classList.remove('active');
+            document.getElementById('resultsScreen').classList.add('active');
+        }
+
+        function resetTest() {
+            document.getElementById('resultsScreen').classList.remove('active');
+            document.getElementById('setupScreen').classList.add('active');
+            document.getElementById('testSelect').value = '';
+            document.getElementById('startQuestion').value = '1';
+            document.getElementById('endQuestion').value = '';
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadTests();
+            
+            document.getElementById('testSelect').addEventListener('change', function() {
+                const testKey = this.value;
+                if (testKey && availableTests[testKey]) {
+                    const allQuestions = parseTest(availableTests[testKey].content);
+                    document.getElementById('endQuestion').value = allQuestions.length;
+                    document.getElementById('endQuestion').max = allQuestions.length;
+                }
+            });
+        });
+    </script>
+</body>
+</html>
