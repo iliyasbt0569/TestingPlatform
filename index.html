@@ -146,14 +146,14 @@
                         difficulty: parseInt(questionMatch[1]),
                         text: questionMatch[2].trim(),
                         variants: [],
-                        correctIndex: -1
+                        correctVariant: null
                     };
                     continue;
                 }
 
                 const rightMatch = line.match(/<variantright>\s*(.+)/);
                 if (rightMatch && currentQuestion) {
-                    currentQuestion.correctIndex = currentQuestion.variants.length;
+                    currentQuestion.correctVariant = rightMatch[1].trim();
                     currentQuestion.variants.push(rightMatch[1].trim());
                     continue;
                 }
@@ -206,14 +206,11 @@
         function shuffle(array) {
           let currentIndex = array.length;
         
-          // While there remain elements to shuffle...
           while (currentIndex != 0) {
         
-            // Pick a remaining element...
             let randomIndex = Math.floor(Math.random() * currentIndex);
             currentIndex--;
         
-            // And swap it with the current element.
             [array[currentIndex], array[randomIndex]] = [
               array[randomIndex], array[currentIndex]];
           }
@@ -253,19 +250,21 @@
             if (answered) return;
 
             const question = questions[currentQuestionIndex];
-            userAnswers[currentQuestionIndex] = index;
-            answered = true;
-
             const variants = document.querySelectorAll('.variant');
+            userAnswers[currentQuestionIndex] = variants[index].textContent;
+
+            answered = true;
             variants.forEach(v => v.classList.add('disabled'));
 
-            if (index === question.correctIndex) {
-                variants[index].classList.add('correct');
-            } else {
+            if (variants[index].textContent !== question.correctVariant) {
                 variants[index].classList.add('incorrect');
-                variants[question.correctIndex].classList.add('correct-answer');
+            } 
+            for(let item of variants){
+                if(item.textContent === question.correctVariant){
+                    item.classList.add('correct');
+                }
             }
-
+            
             document.getElementById('nextBtn').disabled = false;
         }
 
@@ -281,7 +280,7 @@
         function showResults() {
             let correct = 0;
             questions.forEach((q, i) => {
-                if (userAnswers[i] === q.correctIndex) {
+                if (userAnswers[i] === q.correctVariant) {
                     correct++;
                 }
             });
@@ -296,7 +295,7 @@
             reviewEl.innerHTML = '';
 
             questions.forEach((q, i) => {
-                const isCorrect = userAnswers[i] === q.correctIndex;
+                const isCorrect = userAnswers[i] === q.correctVariant;
                 const item = document.createElement('div');
                 item.className = `review-item ${isCorrect ? 'correct-review' : 'incorrect-review'}`;
 
@@ -307,13 +306,13 @@
 
                 const userAnswer = document.createElement('div');
                 userAnswer.className = `review-answer ${isCorrect ? 'user-correct' : 'user-incorrect'}`;
-                userAnswer.textContent = `Your answer: ${q.variants[userAnswers[i]]}`;
+                userAnswer.textContent = `Your answer: ${userAnswers[i]}`;
                 item.appendChild(userAnswer);
 
                 if (!isCorrect) {
                     const correctAnswer = document.createElement('div');
                     correctAnswer.className = 'review-answer correct-answer-show';
-                    correctAnswer.textContent = `Correct answer: ${q.variants[q.correctIndex]}`;
+                    correctAnswer.textContent = `Correct answer: ${q.correctVariant}`;
                     item.appendChild(correctAnswer);
                 }
 

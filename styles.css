@@ -325,7 +325,7 @@ select option {
 .review-answer.correct-answer-show {
     background: rgba(76, 175, 80, 0.15);
     color: #a5d6a7;
-    border: 1px dashed #4caf50;
+    border: 1px #4caf50;
 }
 
 .error {
