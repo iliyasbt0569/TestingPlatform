@@ -37,7 +37,7 @@ A web-based **interactive testing platform** designed to create, take, and revie
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/testing-platform.git
+git clone https://github.com/iliyasbt0569/TestingPlatform.git
 ```
 
 2. Open index.html in a web browser.
