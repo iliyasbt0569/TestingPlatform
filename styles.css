@@ -96,6 +96,10 @@ select option {
     gap: 15px;
 }
 
+.shuffle-questions{
+    margin-top: 15px;
+}
+
 .btn {
     width: 100%;
     padding: 15px;
