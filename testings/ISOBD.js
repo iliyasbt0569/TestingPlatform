@@ -1,4 +1,4 @@
-export const testingName = `Web-сайттарды құрудың заманауи құралдары`;
+export const testingName = `Үлкен деректерді өңдеудің зияткерлік жүйелері`;
 export const testingStr = `
 <question1> Ақпараттың қысқаша анықтамасын беріңіз:
 <variantright> білімдердің жинағы 
